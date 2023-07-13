@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "Creating a new x509 certificate GOST with key output"
+
+mkdir cert
+cd cert
+
+openssl req -x509 -nodes -newkey gost2001 -pkeyopt paramset:TCB -keyout key.pem -out cert.pem
