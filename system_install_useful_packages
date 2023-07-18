@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "Installing useful packages"
+
+apt-get update && apt-get upgrade -y
+
+./package_check_and_install git
+./package_check_and_install cmake
+./package_check_and_install build-essential # Meta-package pack for GNU C/C++ 
+
