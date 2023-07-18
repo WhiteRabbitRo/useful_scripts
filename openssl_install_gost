@@ -2,7 +2,7 @@
 
 echo "Installing GOST engine for OpenSSL"
 
-./${pwd}/package_check_and_install git cmake libssl-dev openssl pkg-config > /dev/null
+$(pwd)/package_check_and_install git cmake libssl-dev openssl pkg-config > /dev/null
 
 mkdir tmp
 cd tmp
@@ -12,21 +12,21 @@ cd engine
 mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=${openssl version -d} ..
+cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(openssl version -d | cut -d ' ' -f 2 | cut -d '"' -f 2) ..
 cmake --build . --target install --config Release
 
-cp bin/gost.so ${openssl version -e}
+cp bin/gost.so $(openssl version -e)
 
-cat ${openssl version -d}/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
+cat $(openssl version -d | cut -d ' ' -f 2)/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
 echo "[openssl_def]" >> openssl.cnf
 echo "engines = engine_section" >> openssl.cnf
 echo "[engine_section]" >> openssl.cnf
 echo "gost = gost_section" >> openssl.cnf
 echo "[gost_section]" >> openssl.cnf
 echo "engine_id = gost" >> openssl.cnf
-echo "dynamic_path = ${openssl version -e}/gost.so" >> openssl.cnf
+echo "dynamic_path = $(openssl version -e | cut -d ' ' -f 2)/gost.so" >> openssl.cnf
 echo "default_algorithms = ALL" >> openssl.cnf
-mv openssl.cnf ${openssl version -d}/openssl.cnf
+mv openssl.cnf $(openssl version -d | cut -d ' ' -f 2)/openssl.cnf
 
 cd ../../..
 rm -rf tmp

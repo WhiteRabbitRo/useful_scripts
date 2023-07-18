@@ -9,4 +9,4 @@ do
     echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
     sudo apt-get --yes install $REQUIRED_PKG
   fi
-done bst
+done
