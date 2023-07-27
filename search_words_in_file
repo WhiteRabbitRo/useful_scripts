@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "Searching words in file"
+
+for word in "${@:2}";
+do
+    cat $1 | grep "$word"
+done
+
+#TODO: use an array to fill with unique items
