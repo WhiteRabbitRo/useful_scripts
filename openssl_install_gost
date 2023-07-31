@@ -9,24 +9,28 @@ cd tmp
 
 git clone https://github.com/gost-engine/engine
 cd engine
+git submodule update --init --recursive --remote
 mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(openssl version -d | cut -d ' ' -f 2 | cut -d '"' -f 2) ..
+cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(openssl version -d | cut -d '"' -f 2) ..
+# sudo (?)
 cmake --build . --target install --config Release
 
-cp bin/gost.so $(openssl version -e)
+#sudo (?)
+cp bin/gost.so $(openssl version -e | cut -d '"' -f 2)
 
-cat $(openssl version -d | cut -d ' ' -f 2)/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
+cat $(openssl version -d | cut -d '"' -f 2)/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
 echo "[openssl_def]" >> openssl.cnf
 echo "engines = engine_section" >> openssl.cnf
 echo "[engine_section]" >> openssl.cnf
 echo "gost = gost_section" >> openssl.cnf
 echo "[gost_section]" >> openssl.cnf
 echo "engine_id = gost" >> openssl.cnf
-echo "dynamic_path = $(openssl version -e | cut -d ' ' -f 2)/gost.so" >> openssl.cnf
+echo "dynamic_path = $(openssl version -e | cut -d '"' -f 2)/gost.so" >> openssl.cnf
 echo "default_algorithms = ALL" >> openssl.cnf
-mv openssl.cnf $(openssl version -d | cut -d ' ' -f 2)/openssl.cnf
+# sudo (?)
+mv openssl.cnf $(openssl version -d | cut -d '"' -f 2)/openssl.cnf
 
 cd ../../..
 rm -rf tmp
