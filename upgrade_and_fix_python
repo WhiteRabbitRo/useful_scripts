@@ -1,0 +1,13 @@
+echo "Upgrading python tools"
+
+python3 -m pip install --upgrade pip setuptools wheel
+
+which -a python3
+
+python3 -c "import math" && echo $?0
+
+pip3 list | grep math
+
+echo "[global]" > ~/.config/pip/pip.conf
+echo "target = /usr/local/lib/python3.10/site-packages" > ~/.config/pip/pip.conf
+export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.10/site-packages
