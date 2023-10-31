@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "Creating CA Bundle with OpenSSL-GOST"
+
+openssl req -newkey gost2012_256 -pkeyopt paramset:TCB -nodes -subj "/C=RU/ST=Moscow/L=Moscow/O=Dis/CN=Test" -keyout CA/ca.key -noout
+
+openssl req -new -key CA/ca.key -md_gost12_256 -subj "/C=RU/ST=Moscow/L=Moscow/O=Dis/CN=Test" -out CA/ca.req
+
+openssl ca -days 365 -policy 
