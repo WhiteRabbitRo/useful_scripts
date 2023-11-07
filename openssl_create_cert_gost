@@ -8,21 +8,21 @@ cd cert
 openssl req \
     -new \
     -newkey gost2012_512 \
-    -pkeyopt paramset:C \
+    -pkeyopt paramset:A \
     -days 365 \
     -nodes \
     -x509 \
     -subj "/C=RU/ST=Moscow/L=Moscow/O=Dis/CN=Test" \
-    -keyout client_key_TCC_512_selfsigned.pem \
-    -out client_cert_TCC_512_selfsigned.pem
+    -keyout client_key_TCA_512_selfsigned.pem \
+    -out client_cert_TCA_512_selfsigned.pem
 
 openssl req \
     -new \
     -newkey gost2012_512 \
-    -pkeyopt paramset:C \
+    -pkeyopt paramset:A \
     -days 365 \
     -nodes \
     -x509 \
     -subj "/C=RU/ST=Moscow/L=Moscow/O=Dis/CN=Test" \
-    -keyout server_key_TCC_512_selfsigned.pem \
-    -out server_cert_TCC_512_selfsigned.pem
+    -keyout server_key_TCA_512_selfsigned.pem \
+    -out server_cert_TCA_512_selfsigned.pem
