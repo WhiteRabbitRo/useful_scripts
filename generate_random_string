@@ -1,0 +1,44 @@
+#!/bin/bash
+
+if [[ $# -lt 2 ]];
+then
+    echo "Usage: script_name <length of string> <number of strings> [<file_name>]"
+    exit 1
+fi
+
+STRLEN=$1
+STRNUM=$2
+OPTION="stdout"
+FILENAME=""
+
+if [[ $# -eq 3 ]];
+then
+    FILENAME="$3"
+    OPTION="file"
+fi
+
+echo "Generating random string"
+echo -e "Option: $OPTION"
+
+chars=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+
+if [[ "$OPTION" == "file" ]];
+then
+    for i in $(seq 1 ${STRNUM}); do
+
+        for j in $(seq 1 ${STRLEN}); do
+            echo -n "${chars:RANDOM%${#chars}:1}" >> $FILENAME
+        done
+
+        echo >> $FILENAME
+    done
+else
+    for i in $(seq 1 ${STRNUM}); do
+
+        for j in $(seq 1 ${STRLEN}); do
+            echo -n "${chars:RANDOM%${#chars}:1}"
+        done
+
+        echo
+    done
+fi
