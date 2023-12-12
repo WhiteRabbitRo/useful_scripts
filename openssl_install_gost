@@ -2,34 +2,44 @@
 
 echo "Installing GOST engine for OpenSSL"
 
-$(pwd)/package_check_and_install git cmake libssl-dev openssl pkg-config > /dev/null
+pckgs=( git cmake libssl-dev openssl pkg-config )
+
+for package in ${pckgs[@]}
+do
+  REQUIRED_PKG="$package"
+  PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+  echo Checking for $REQUIRED_PKG: $PKG_OK
+  if [ "" = "$PKG_OK" ]; then
+    echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
+    sudo apt-get --yes install $REQUIRED_PKG
+  fi
+done
 
 mkdir tmp
-cd tmp
 
-git clone https://github.com/gost-engine/engine
-cd engine
-git submodule update --init --recursive --remote
-mkdir build
-cd build
+git clone --recursive -j8 https://github.com/gost-engine/engine tmp/engine
+
+mkdir tmp/engine/build
+cd tmp/engine/build
 
 cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(openssl version -d | cut -d '"' -f 2) ..
-# sudo (?)
 cmake --build . --target install --config Release
 
-#sudo (?)
 cp bin/gost.so $(openssl version -e | cut -d '"' -f 2)
 
 cat $(openssl version -d | cut -d '"' -f 2)/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
-echo "[openssl_def]" >> openssl.cnf
-echo "engines = engine_section" >> openssl.cnf
-echo "[engine_section]" >> openssl.cnf
-echo "gost = gost_section" >> openssl.cnf
-echo "[gost_section]" >> openssl.cnf
-echo "engine_id = gost" >> openssl.cnf
-echo "dynamic_path = $(openssl version -e | cut -d '"' -f 2)/gost.so" >> openssl.cnf
-echo "default_algorithms = ALL" >> openssl.cnf
-# sudo (?)
+echo "
+[openssl_def]
+engines = engine_section
+
+[engine_section]
+gost = gost_section
+
+[gost_section]
+engine_id = gost
+dynamic_path = $(openssl version -e | cut -d '"' -f 2)/gost.so
+default_algorithms = ALL" >> openssl.cnf
+
 mv openssl.cnf $(openssl version -d | cut -d '"' -f 2)/openssl.cnf
 
 cd ../../..
