@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Manually specify the NVIDIA driver branch if ubuntu-drivers is not available
+DEFAULT_DRIVER_BRANCH=535
+
+# Function to detect the latest available NVIDIA driver branch using apt-cache
+detect_driver_branch() {
+    DRIVER_BRANCH=$(apt-cache search nvidia-driver | grep -oP 'nvidia-driver-\K[0-9]+' | sort -n | tail -1)
+    if [ -z "$DRIVER_BRANCH" ]; then
+        echo "Unable to detect NVIDIA driver branch. Falling back to default: $DEFAULT_DRIVER_BRANCH"
+        DRIVER_BRANCH=$DEFAULT_DRIVER_BRANCH
+    else
+        echo "Detected NVIDIA driver branch: $DRIVER_BRANCH"
+    fi
+}
+
+# Detect Linux flavor (generic or lowlatency)
+detect_linux_flavor() {
+    LINUX_FLAVOUR=$(uname -r | grep -oP '(generic|lowlatency)')
+    if [ -z "$LINUX_FLAVOUR" ]; then
+        echo "Unable to detect Linux flavor. Defaulting to 'generic'."
+        LINUX_FLAVOUR="generic"
+    else
+        echo "Detected Linux flavor: $LINUX_FLAVOUR"
+    fi
+}
+
+# Start of the script
+echo "Reinstalling NVIDIA driver..."
+
+# Detect the driver branch if possible, otherwise use the default branch
+detect_driver_branch
+
+# Detect the Linux flavor
+detect_linux_flavor
+
+# Purge any existing NVIDIA drivers
+sudo apt purge '*nvidia-*' -y
+
+# Remove unnecessary packages
+sudo apt autoremove -y
+
+# Install NVIDIA modules for the detected branch and Linux flavor
+sudo apt install -y linux-modules-nvidia-${DRIVER_BRANCH}-${LINUX_FLAVOUR}
+
+# Install Linux headers
+sudo apt install -y linux-headers-${LINUX_FLAVOUR}
+
+# Install NVIDIA DKMS and driver for the detected branch
+sudo apt install -y nvidia-dkms-${DRIVER_BRANCH}
+sudo apt install -y nvidia-driver-${DRIVER_BRANCH}
+
+# Install additional NVIDIA components
+sudo apt install -y nvidia-fabricmanager-${DRIVER_BRANCH} libnvidia-nscq-${DRIVER_BRANCH}
+
+echo "NVIDIA driver installation complete. Reboot your system for the changes to take effect."

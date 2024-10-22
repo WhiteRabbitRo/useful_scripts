@@ -1,0 +1,64 @@
+#!/bin/bash
+
+echo "DEC-array to HEX-array"
+
+str="$@"
+
+# for num in "$@"
+# do
+#     str="Origin string: "
+#     for (( i = 0; i < ${#string};));
+#     do
+#         if [[ "$((${#string}%2))" != "0" && "$i" == "0" ]];
+#         then
+#             str=$str"0${string:i:1}"
+#             i=$i+1
+#         else
+#             str=$str"${string:i:2}"
+#             i=$i+2
+#         fi
+
+#     done
+#     echo $str
+    
+#     str="Reversed string: "
+    
+#     for (( i = 0; i < ${#string};));
+#     do
+#         if [[ "$((${#string}%2))" != "0" && "$i" == "0" ]];
+#         then
+#             str=$str"0${string:${#string} - i - 1:1}"
+#             i=$i+1
+#         else
+#             str=$str"${string:${#string} - i - 2:2}"
+#             i=$i+2
+#         fi
+
+#     done
+
+#     echo $str
+
+#     str=""
+
+    
+# done
+
+str="$(echo $str | tr -d '[:punct:]\n\r')"
+hexstr=""
+for char in $str
+do
+    hexstr=$hexstr"0x$(echo "obase=16; $char" | bc), "
+done
+
+echo $hexstr
+
+echo "Reversed:"
+
+IFS=' '
+read -a strarr <<< "$hexstr"
+str=""
+for (( i = ${#strarr[*]} + 1; i != 0; --i));
+do
+    str=$str" "${strarr[$i-1]}
+done
+echo $str

@@ -1,0 +1,129 @@
+#!/bin/bash
+
+# Function to check connected displays using xrandr
+check_displays() {
+    echo "Detecting connected displays using xrandr..."
+    CONNECTED_DISPLAYS=$(xrandr --query | grep " connected" | awk '{ print $1 }')
+
+    if [ -z "$CONNECTED_DISPLAYS" ]; then
+        echo "No connected displays detected. There may be a deeper issue."
+    else
+        echo "Connected displays: $CONNECTED_DISPLAYS"
+        echo "Checking for inactive displays..."
+        check_inactive_displays
+    fi
+}
+
+# Function to check and activate inactive displays
+check_inactive_displays() {
+    xrandr_output=$(xrandr)
+    for output in $(echo "$xrandr_output" | grep " connected" | awk '{print $1}'); do
+        if echo "$xrandr_output" | grep "$output connected" | grep -q "disconnected"; then
+            echo "Display $output is detected but inactive. Trying to activate it..."
+            activate_display "$output"
+        else
+            echo "Display $output is active."
+        fi
+    done
+}
+
+# Function to activate the second display
+activate_display() {
+    SECOND_DISPLAY=$1
+    PRIMARY_DISPLAY=$(xrandr --query | grep " connected" | head -n 1 | awk '{ print $1 }')
+    
+    echo "Attempting to extend $SECOND_DISPLAY from $PRIMARY_DISPLAY..."
+    xrandr --output $SECOND_DISPLAY --auto --right-of $PRIMARY_DISPLAY
+    
+    if [ $? -eq 0 ]; then
+        echo "Successfully activated $SECOND_DISPLAY."
+    else
+        echo "Failed to activate $SECOND_DISPLAY. Trying common fixes..."
+        fix_nvidia_issues
+    fi
+}
+
+# Function to check and fix potential NVIDIA driver issues
+fix_nvidia_issues() {
+    echo "Checking NVIDIA drivers..."
+    NVIDIA_STATUS=$(nvidia-smi 2>&1)
+
+    if [[ "$NVIDIA_STATUS" == *"command not found"* ]]; then
+        echo "NVIDIA driver is not installed. Installing the latest driver..."
+        sudo apt update
+        sudo apt install -y nvidia-driver-560  # Replace 560 with your desired version
+    elif [[ "$NVIDIA_STATUS" == *"No devices were found"* ]]; then
+        echo "No NVIDIA GPU detected. This might not be an NVIDIA issue."
+    else
+        echo "NVIDIA driver is installed and functioning."
+    fi
+
+    echo "Restarting the display manager..."
+    restart_display_manager
+}
+
+# Function to restart the display manager (GDM or LightDM)
+restart_display_manager() {
+    if systemctl status gdm > /dev/null 2>&1; then
+        echo "Restarting GDM..."
+        sudo systemctl restart gdm
+    elif systemctl status lightdm > /dev/null 2>&1; then
+        echo "Restarting LightDM..."
+        sudo systemctl restart lightdm
+    else
+        echo "Display manager (GDM/LightDM) not found. Please check your display manager configuration."
+    fi
+}
+
+# Function to check for VGA connection issues
+check_vga_connection() {
+    echo "Checking for VGA connection issues..."
+    VGA_DISPLAY=$(xrandr --query | grep -i "VGA" | awk '{print $1}')
+    
+    if [ -z "$VGA_DISPLAY" ]; then
+        echo "No VGA display detected."
+    else
+        echo "VGA display detected: $VGA_DISPLAY"
+        VGA_STATUS=$(xrandr | grep "$VGA_DISPLAY connected")
+        
+        if [ -z "$VGA_STATUS" ]; then
+            echo "VGA display is connected but inactive. Trying to activate it..."
+            activate_display "$VGA_DISPLAY"
+        else
+            echo "VGA display is active."
+        fi
+    fi
+}
+
+# Function to troubleshoot common VGA issues
+fix_vga_issues() {
+    echo "Troubleshooting VGA issues..."
+
+    # Check for loose VGA cable connection
+    echo "Checking VGA cable connection. Please ensure the cable is properly connected."
+
+    # Attempt to reset VGA output
+    if [ ! -z "$VGA_DISPLAY" ]; then
+        echo "Attempting to reset the VGA display..."
+        xrandr --output $VGA_DISPLAY --off
+        sleep 1
+        xrandr --output $VGA_DISPLAY --auto
+        if [ $? -eq 0 ]; then
+            echo "Successfully reset the VGA display."
+        else
+            echo "Failed to reset the VGA display."
+        fi
+    fi
+}
+
+# Start of the script
+echo "Attempting to detect and fix issues with your displays, including VGA..."
+
+# Check connected displays
+check_displays
+
+# Check and fix VGA-specific issues
+check_vga_connection
+fix_vga_issues
+
+echo "Display detection and fixes complete."
