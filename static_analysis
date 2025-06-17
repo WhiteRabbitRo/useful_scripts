@@ -1,0 +1,193 @@
+#!/bin/bash
+
+#./scripts/static_analysis -i=submodules/dtls/libatd/include -i=submodules/dtls/libatd/src -i=submodules/dtls/submodules/libacm/include -i=submodules/dtls/submodules/uthash/src -d=ATD_DEBUG=1 -d=ATD_TLS12_SUPPORT=1 -d=ATD_DTLS12_SUPPORT=1 -s=submodules/dtls/libatd/src
+
+echo "Static Analysis"
+
+# ../scripts/static_analysis
+if [[ $(uname -s) == 'Darwin' ]]; then
+    SCRIPT_PATH=$(realpath -s "${BASH_SOURCE:-$0}")
+else
+    SCRIPT_PATH=$(readlink -f "${BASH_SOURCE:-$0}")
+fi
+
+# ../scripts
+SCRIPT_DIR=$(dirname "${SCRIPT_PATH}")
+
+# ..
+MAIN_DIR=$(dirname "${SCRIPT_DIR}")
+
+VERBOS=false
+SHOW_HELP=false
+
+INCLUDES=()
+DEFINES=()
+SOURCES=()
+SRC_FILES=()
+CUSTOM_OUTDIR=""
+
+echo ${MAIN_DIR}
+
+# Разбор аргументов
+for arg in "$@"; do
+  case $arg in
+    -v|--verbose)
+      VERBOSE=true
+      shift
+      ;;
+    -i=*|--incdir=*)
+      INCLUDE_STRING="${arg#*=}"
+      INCLUDES+=( "-I${MAIN_DIR}/${INCLUDE_STRING}" )
+      shift
+      ;;
+    -d=*|--define=*)
+      DEFINE_STRING="${arg#*=}"
+      DEFINES+=( "-D${DEFINE_STRING}" )
+      shift
+      ;;
+    -s=*|--srcdir=*)
+      SOURCE_STRING="${arg#*=}"
+      SOURCES+=( ${SOURCE_STRING} )
+      shift
+      ;;
+    -h|--help)
+      SHOW_HELP=true
+      shift
+      ;;
+    --logdir=*)
+      CUSTOM_OUTDIR="${arg#*=}"
+      shift
+      ;;
+    *)
+      echo "Неизвестный аргумент: $arg"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "${SHOW_HELP}" == true ]]; then
+    echo "Использование: ../<project_root>/scripts/static_analysis.sh [опции]"
+    echo "Опции:"
+    echo "  -v, --verbose               Подробный вывод в терминал"
+    echo "  -i=DIR, --incdir=DIR        Включить папку с заголовочными файлами (относительный путь из корня, например, -i=include -i=submodules/libacm/include)"
+    echo "  -d=DEF, --define=DEF        Включить опцию в сборку (например, --define=ATD_TLS12_SUPPORT -d=ATD_NIST=1)"
+    echo "  -s=DIR, --srcdir=DIR        Включить папку с ресурсными файлами (относительный путь из корня, например, -s=src)"
+    echo "  --logdir=DIR                Директория для логов (относительный путь из корня, например, --logdir=Debug, по умолчанию ../<project_root>/Debug)"
+    echo "  -h, --help                  Показать эту справку"
+    exit 0
+fi
+
+# Заполняем ресурсные файлы
+for dir in ${SOURCES}; do
+    SRC_FILES+=( $(find ${dir} -type f -name "*.c") )
+done
+
+OUTDIR=${MAIN_DIR}/Debug
+[[ "${CUSTOM_OUTDIR}" != "" ]] && OUTDIR=${MAIN_DIR}/${CUSTOM_OUTDIR}
+
+CPPCHECK_FILE=${OUTDIR}/cppcheck.out
+CLANG_FILE=${OUTDIR}/clang.out
+GCCANALYZER_FILE=${OUTDIR}/gccanalyzer.out
+
+CPPCHECK_LOG=${OUTDIR}/cppcheck.log
+CLANG_LOG=${OUTDIR}/clang.log
+GCCANALYZER_LOG=${OUTDIR}/gccanalyzer.log
+
+function count_string_in_file {
+    [[ $# -eq 2 ]] && grep -c "$2" "$1"
+}
+
+function package_check_and_install {
+    for package in "$@"
+    do
+        REQUIRED_PKG="$package"
+        PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+        echo -n "Checking for $REQUIRED_PKG: "
+        if [ "" = "$PKG_OK" ]; then
+            echo -n "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
+            sudo apt-get --yes install $REQUIRED_PKG
+        else
+            echo -n -e "\tInstalled"
+        fi
+        echo
+    done
+}
+
+# Очищаем отладочную дирректорию
+rm -rf ${OUTDIR}
+
+# Создаем отладочную дирректорию ../Debug
+[[ ! -d ${OUTDIR} ]] && mkdir -p ${OUTDIR}
+
+package_check_and_install cppcheck clang gcc clang-tools
+
+########################
+### CPPCHECK
+########################
+echo -e "\n[INFO] Running Cppcheck Static Analyzer..."
+$VERBOSE && echo "    Logging to $CPPCHECK_FILE"
+
+cppcheck --enable=all --platform=unix32 --force --inline-suppr \
+    --report-progress --verbose ${INCLUDES[@]} ${SRC_FILES[@]} 2>${CPPCHECK_FILE} > ${CPPCHECK_LOG}
+
+CPP_WARN_COUNT=$(count_string_in_file $CPPCHECK_FILE 'warning:')
+CPP_ERR_COUNT=$(count_string_in_file $CPPCHECK_FILE 'error:')
+
+if [[ ! -e $CPPCHECK_FILE || $CPP_WARN_COUNT -gt 0 || $CPP_ERR_COUNT -gt 0 ]]; then
+    echo -e "[1]SA_CPPCHECK\t\t: \033[0;31mFailed\033[0m"
+    $VERBOSE && {
+        echo -e "Number of warnings:\t$CPP_WARN_COUNT"
+        echo -e "Number of errors:\t$CPP_ERR_COUNT"
+    }
+else
+    echo -e "[1]SA_CPPCHECK\t\t: \033[0;32mPassed\033[0m"
+fi
+
+########################
+### CLANG ANALYZE
+########################
+echo -e "\n[INFO] Running Clang Static Analyzer..."
+$VERBOSE && echo "    Logging to $CLANG_FILE"
+> ${CLANG_FILE}
+
+clang --analyze -Xanalyzer -analyzer-output=text \
+    ${INCLUDES[@]} -c ${SRC_FILES[@]} 2> ${CLANG_FILE} > ${CLANG_LOG}
+
+CLANG_WARN_COUNT=$(count_string_in_file $CLANG_FILE 'warning:')
+CLANG_ERR_COUNT=$(count_string_in_file $CLANG_FILE 'error:')
+
+if [[ ! -e $CLANG_FILE || $CLANG_WARN_COUNT -gt 0 || $CLANG_ERR_COUNT -gt 0 ]]; then
+    echo -e "[2]SA_CLANG\t\t: \033[0;31mFailed\033[0m"
+    $VERBOSE && {
+        echo -e "Number of warnings:\t$CLANG_WARN_COUNT"
+        echo -e "Number of errors:\t$CLANG_ERR_COUNT"
+    }
+else
+    echo -e "[2]SA_CLANG\t\t: \033[0;32mPassed\033[0m"
+fi
+
+########################
+### GCC -fanalyzer
+########################
+
+echo -e "\n[INFO] Running GCC Static Analyzer (fanalyzer)..."
+$VERBOSE && echo "    Logging to $GCCANALYZER_FILE"
+> ${GCCANALYZER_FILE}
+
+for file in ${SRC_FILES[@]}; do
+    echo "Analyzing $file..." >> ${GCCANALYZER_FILE}
+    gcc -Wall -Wextra -fanalyzer -fanalyzer-verbosity=7 -c ${DEFINES[@]} ${INCLUDES[@]} "$file" 2> ${GCCANALYZER_FILE} > ${GCCANALYZER_LOG}
+done
+
+GCC_WARN_COUNT=$(count_string_in_file $GCCANALYZER_FILE 'warning:')
+GCC_ERR_COUNT=$(count_string_in_file $GCCANALYZER_FILE 'error:')
+
+if [[ ! -e $GCCANALYZER_FILE || $GCC_WARN_COUNT -gt 0 || $GCC_ERR_COUNT -gt 0 ]]; then
+    echo -e "[3]SA_GCCANALYZER\t: \033[0;31mFailed\033[0m"
+    $VERBOSE && {
+        echo -e "Number of warnings:\t$GCC_WARN_COUNT"
+        echo -e "Number of errors:\t$GCC_ERR_COUNT"
+    }
+else
+    echo -e "[3]SA_GCCANALYZER\t: \033[0;32mPassed\033[0m"
+fi
