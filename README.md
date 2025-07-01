@@ -1,2 +1,5 @@
 # useful_scripts
-Personal library of useful bash/sh scripts
+Personal library of useful bash/sh scripts and guides
+
+
+
