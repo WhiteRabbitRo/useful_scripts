@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-OPENSSL_VERSION="3.5.4"
+OPENSSL_VERSION="3.0.18"
 INSTALL_PREFIX="/usr/local/ssl"
 SRC_DIR="/usr/local/src"
 TARBALL="openssl-${OPENSSL_VERSION}.tar.gz"
