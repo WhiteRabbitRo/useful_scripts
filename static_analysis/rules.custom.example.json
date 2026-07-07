@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "id": "custom-memcpy-no-sizeof",
+      "pattern": "memcpy\\s*\\([^,]+,[^,]+,\\s*\\d+\\s*\\)",
+      "message": "memcpy() с литеральным размером вместо sizeof(...) — проверьте соответствие размеру буфера-назначения",
+      "severity": "warning",
+      "cwe": "CWE-805"
+    },
+    {
+      "id": "custom-todo-security",
+      "pattern": "TODO.*(security|auth|crypto)",
+      "message": "Незакрытый TODO, касающийся безопасности/авторизации/криптографии",
+      "severity": "info",
+      "context_sensitive": false
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Новые зависимости по сравнению с исходным Bash-скриптом.
+# Python 3.11+ уже содержит tomllib в стандартной библиотеке — tomli не нужен.
+
+colorama>=0.4.6        # цветной консольный вывод (кроссплатформенно, в т.ч. Windows)
+tomli>=2.0.1; python_version < "3.11"   # парсер TOML для .analyzerrc на Python < 3.11
+
+# Внешние бинарники (не через pip, ставятся системным пакетным менеджером):
+#   cppcheck, clang, clang-tools (clang --analyze), gcc, clang-format
+#   Ubuntu/Debian: sudo apt-get install cppcheck clang clang-tools gcc clang-format
+#   macOS (brew):  brew install cppcheck llvm gcc clang-format
