@@ -16,15 +16,18 @@ check_displays() {
 
 # Function to check and activate inactive displays
 check_inactive_displays() {
-    xrandr_output=$(xrandr)
-    for output in $(echo "$xrandr_output" | grep " connected" | awk '{print $1}'); do
-        if echo "$xrandr_output" | grep "$output connected" | grep -q "disconnected"; then
-            echo "Display $output is detected but inactive. Trying to activate it..."
-            activate_display "$output"
-        else
+    local active_outputs
+    active_outputs="$(xrandr --listactivemonitors 2>/dev/null | tail -n +2 | awk '{print $4}')"
+
+    while IFS= read -r output; do
+        [[ -z "$output" ]] && continue
+        if echo "$active_outputs" | grep -qx "$output"; then
             echo "Display $output is active."
+        else
+            echo "Display $output is connected but inactive. Trying to activate it..."
+            activate_display "$output"
         fi
-    done
+    done < <(xrandr --query | grep " connected" | awk '{print $1}')
 }
 
 # Function to activate the second display

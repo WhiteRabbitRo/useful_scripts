@@ -1,5 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Killing port: $@"
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <port>" >&2
+    exit 1
+fi
 
-lsof -ti:$@ | xargs kill -9
+PORT="$1"
+if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+    echo "Error: port must be a number, got: $PORT" >&2
+    exit 1
+fi
+
+echo "Killing processes on port: $PORT"
+
+PIDS="$(lsof -ti:"$PORT" 2>/dev/null || true)"
+if [[ -z "$PIDS" ]]; then
+    echo "No processes found on port $PORT"
+    exit 0
+fi
+
+echo "Found PIDs: $PIDS"
+kill $PIDS 2>/dev/null || true
+sleep 1
+
+REMAINING="$(lsof -ti:"$PORT" 2>/dev/null || true)"
+if [[ -n "$REMAINING" ]]; then
+    echo "Force killing remaining PIDs: $REMAINING"
+    kill -9 $REMAINING
+fi
+
+echo "Done."

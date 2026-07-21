@@ -22,6 +22,38 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+REAL_USER=${SUDO_USER:-$USER}
+WORK_DIR="/home/$REAL_USER/Workplace"
+CONN_NAME="iPhone USB Shared"
+
+uninstall_reverse_tether() {
+    echo -e "${RED}Удаление реверсивного тетеринга...${NC}"
+
+    systemctl stop usbmuxd 2>/dev/null || true
+    systemctl disable usbmuxd 2>/dev/null || true
+    rm -f /etc/systemd/system/usbmuxd.service
+    systemctl daemon-reload
+
+    if nmcli connection show "$CONN_NAME" &>/dev/null; then
+        nmcli connection delete "$CONN_NAME"
+        echo -e "${GREEN}Подключение '$CONN_NAME' удалено.${NC}"
+    fi
+
+    read -p "Удалить исходники в $WORK_DIR? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$WORK_DIR"
+        echo -e "${GREEN}Исходники удалены.${NC}"
+    fi
+
+    echo -e "${GREEN}Удаление завершено.${NC}"
+}
+
+if [[ "${1:-}" == "--uninstall" ]]; then
+    uninstall_reverse_tether
+    exit 0
+fi
+
 # --- Шаг 1: Установка системных зависимостей ---
 echo -e "${GREEN}[1/7] Установка системных зависимостей...${NC}"
 apt update
@@ -31,8 +63,6 @@ apt install -y build-essential pkg-config checkinstall git autoconf automake \
 
 echo -e "${GREEN}[2/7] Создание рабочей директории...${NC}"
 # Используем директорию пользователя, который вызвал sudo
-REAL_USER=${SUDO_USER:-$USER}
-WORK_DIR="/home/$REAL_USER/Workplace"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
@@ -125,7 +155,6 @@ fi
 echo -e "${GREEN}Найден интерфейс: $IPHONE_IFACE${NC}"
 
 # Проверяем, существует ли уже подключение с общим доступом для этого интерфейса
-CONN_NAME="iPhone USB Shared"
 if nmcli connection show "$CONN_NAME" &>/dev/null; then
     echo -e "${YELLOW}Подключение '$CONN_NAME' уже существует. Удаляем для обновления...${NC}"
     nmcli connection delete "$CONN_NAME"
@@ -150,30 +179,3 @@ echo -e "5. Включен ли режим модема на iPhone (необя�
 echo -e ""
 echo -e "${YELLOW}Чтобы удалить настройки и вернуть всё как было, запустите скрипт с флагом --uninstall:${NC}"
 echo -e "  sudo $0 --uninstall"
-
-# --- Блок удаления ---
-if [ "$1" == "--uninstall" ]; then
-    echo -e "${RED}Удаление реверсивного тетеринга...${NC}"
-    
-    systemctl stop usbmuxd
-    systemctl disable usbmuxd
-    rm -f /etc/systemd/system/usbmuxd.service
-    systemctl daemon-reload
-    
-    CONN_NAME="iPhone USB Shared"
-    if nmcli connection show "$CONN_NAME" &>/dev/null; then
-        nmcli connection delete "$CONN_NAME"
-        echo -e "${GREEN}Подключение '$CONN_NAME' удалено.${NC}"
-    fi
-    
-    # Можно удалить собранные исходники, если нужно
-    read -p "Удалить исходники в $WORK_DIR? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf "$WORK_DIR"
-        echo -e "${GREEN}Исходники удалены.${NC}"
-    fi
-    
-    echo -e "${GREEN}Удаление завершено.${NC}"
-    exit 0
-fi

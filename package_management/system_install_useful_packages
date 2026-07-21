@@ -7,7 +7,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 apt-get update && apt-get upgrade -y
 
-./package_check_and_install git
-./package_check_and_install cmake
-./package_check_and_install build-essential # Meta-package pack for GNU C/C++ 
+"$SCRIPT_DIR/package_check_and_install" git
+"$SCRIPT_DIR/package_check_and_install" cmake
+"$SCRIPT_DIR/package_check_and_install" build-essential # Meta-package pack for GNU C/C++
 

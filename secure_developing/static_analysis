@@ -17,7 +17,7 @@ SCRIPT_DIR=$(dirname "${SCRIPT_PATH}")
 # ..
 MAIN_DIR=$(dirname "${SCRIPT_DIR}")
 
-VERBOS=false
+VERBOSE=false
 SHOW_HELP=false
 
 INCLUDES=()
@@ -176,7 +176,7 @@ $VERBOSE && echo "    Logging to $GCCANALYZER_FILE"
 
 for file in ${SRC_FILES[@]}; do
     echo "Analyzing $file..." >> ${GCCANALYZER_FILE}
-    gcc -Wall -Wextra -fanalyzer -fanalyzer-verbosity=7 -c ${DEFINES[@]} ${INCLUDES[@]} "$file" 2> ${GCCANALYZER_FILE} > ${GCCANALYZER_LOG}
+    gcc -Wall -Wextra -fanalyzer -fanalyzer-verbosity=7 -c ${DEFINES[@]} ${INCLUDES[@]} "$file" 2>> ${GCCANALYZER_FILE} >> ${GCCANALYZER_LOG}
 done
 
 GCC_WARN_COUNT=$(count_string_in_file $GCCANALYZER_FILE 'warning:')
