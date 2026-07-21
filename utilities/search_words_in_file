@@ -1,10 +1,27 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Searching words in file"
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 <file> <word1> [word2 ...]" >&2
+    exit 1
+fi
 
-for word in "${@:2}";
-do
-    cat $1 | grep "$word"
+FILE="$1"
+shift
+
+if [[ ! -f "$FILE" ]]; then
+    echo "Error: file not found: $FILE" >&2
+    exit 1
+fi
+
+echo "Searching words in file: $FILE"
+
+PATTERN=""
+for word in "$@"; do
+    if [[ -n "$PATTERN" ]]; then
+        PATTERN="${PATTERN}|"
+    fi
+    PATTERN="${PATTERN}${word}"
 done
 
-#TODO: use an array to fill with unique items
+grep -En "$PATTERN" "$FILE"

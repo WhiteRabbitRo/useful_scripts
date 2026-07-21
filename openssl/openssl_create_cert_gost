@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "Creating a new x509 certificate GOST with key output"
 

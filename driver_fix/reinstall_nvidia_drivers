@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Manually specify the NVIDIA driver branch if ubuntu-drivers is not available
 DEFAULT_DRIVER_BRANCH=535
