@@ -37,6 +37,7 @@ class AnalyzerConfig:
     enable_clang_format: bool = False
     use_cache: bool = True
     cache_path: str = ".analyzer_cache.json"
+    cppcheck_platform: str = "unix64"
 
     def jobs_or_auto(self) -> int:
         return self.jobs if self.jobs > 0 else max(1, (os.cpu_count() or 2) - 1)

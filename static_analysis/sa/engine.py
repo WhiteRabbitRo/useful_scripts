@@ -76,6 +76,7 @@ class AnalyzerEngine:
             defines=self.config.defines,
             project_root=self.config.project_root,
             verbose=self.config.verbose,
+            cppcheck_platform=self.config.cppcheck_platform,
         )
 
         all_findings: List[Finding] = []

@@ -29,6 +29,7 @@ JSON/TOML-конфиги, SARIF, `argparse` — не реализуемы в Bas
 | —                          | `--no-secrets`                   | Новое: отключить детектор секретов |
 | —                          | `--clang-format`                 | Новое: проверка форматирования (замена PEP8/ESLint для C) |
 | —                          | `--config FILE`                  | Новое: явный путь к `.analyzerrc` |
+| —                          | `cppcheck_platform` в `.analyzerrc` | Новое: платформа cppcheck (`unix64` по умолчанию; legacy bash использовал `unix32`) |
 
 ## Шаги миграции
 

@@ -13,3 +13,4 @@ enable_secret_scan = true
 enable_clang_format = false
 use_cache = true
 jobs = 0
+cppcheck_platform = "unix64"

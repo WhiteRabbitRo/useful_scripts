@@ -21,9 +21,10 @@ from .models import Finding, Severity
 @dataclass
 class AnalysisContext:
     includes: List[str]     # уже в форме -Ipath
-    defines: List[str]      # уже в форме -DNAME=VAL
+    defines: List[str]      # уже в форме -DNAME=VAL или NAME=VAL
     project_root: str
     verbose: bool = False
+    cppcheck_platform: str = "unix64"
 
 
 class AnalyzerStrategy(ABC):
@@ -65,7 +66,7 @@ class CppcheckStrategy(AnalyzerStrategy):
         cmd = [
             "cppcheck",
             "--enable=all",
-            "--platform=unix64",
+            f"--platform={ctx.cppcheck_platform}",
             "--force",
             "--inline-suppr",
             "--template={file}:{line}:{column}: {severity}: {message} [{id}]",
