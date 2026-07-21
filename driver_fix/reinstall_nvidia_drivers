@@ -51,7 +51,17 @@ sudo apt install -y linux-headers-${LINUX_FLAVOUR}
 sudo apt install -y nvidia-dkms-${DRIVER_BRANCH}
 sudo apt install -y nvidia-driver-${DRIVER_BRANCH}
 
-# Install additional NVIDIA components
-sudo apt install -y nvidia-fabricmanager-${DRIVER_BRANCH} libnvidia-nscq-${DRIVER_BRANCH}
+install_optional_package() {
+    local pkg="$1"
+    if apt-cache show "$pkg" &>/dev/null; then
+        sudo apt install -y "$pkg"
+    else
+        echo "Skipping optional package (not available): $pkg"
+    fi
+}
+
+# Install additional NVIDIA components (datacenter-only; optional)
+install_optional_package "nvidia-fabricmanager-${DRIVER_BRANCH}"
+install_optional_package "libnvidia-nscq-${DRIVER_BRANCH}"
 
 echo "NVIDIA driver installation complete. Reboot your system for the changes to take effect."

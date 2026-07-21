@@ -1,34 +1,43 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "Installing GOST engine for OpenSSL"
 
 pckgs=( git cmake libssl-dev openssl pkg-config )
 
-for package in ${pckgs[@]}
-do
-  REQUIRED_PKG="$package"
-  PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
-  echo Checking for $REQUIRED_PKG: $PKG_OK
-  if [ "" = "$PKG_OK" ]; then
-    echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
-    sudo apt-get --yes install $REQUIRED_PKG
-  fi
+for package in "${pckgs[@]}"; do
+    REQUIRED_PKG="$package"
+    PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQUIRED_PKG" | grep "install ok installed" || true)
+    echo "Checking for $REQUIRED_PKG: $PKG_OK"
+    if [[ "" = "$PKG_OK" ]]; then
+        echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
+        sudo apt-get --yes install "$REQUIRED_PKG"
+    fi
 done
 
-mkdir tmp
+OPENSSL_DIR="$(openssl version -d | cut -d '"' -f 2)"
+ENGINE_DIR="$(openssl version -e | cut -d '"' -f 2)"
+OPENSSL_CNF="${OPENSSL_DIR}/openssl.cnf"
 
-git clone --recursive -j8 https://github.com/gost-engine/engine tmp/engine
+if [[ -f "$OPENSSL_CNF" ]]; then
+    cp "$OPENSSL_CNF" "${OPENSSL_CNF}.bak.$(date +%s)"
+    echo "Backup created: ${OPENSSL_CNF}.bak.$(date +%s)"
+fi
 
-mkdir tmp/engine/build
+mkdir -p tmp
+git clone --recursive https://github.com/gost-engine/engine tmp/engine
+
+mkdir -p tmp/engine/build
 cd tmp/engine/build
 
-cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(openssl version -d | cut -d '"' -f 2) ..
+cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR="$OPENSSL_DIR" ..
 cmake --build . --target install --config Release
 
-cp bin/gost.so $(openssl version -e | cut -d '"' -f 2)
+cp bin/gost.so "$ENGINE_DIR/"
 
-cat $(openssl version -d | cut -d '"' -f 2)/openssl.cnf | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
-echo "
+cat "$OPENSSL_CNF" | sed -e "s/openssl_conf = .*/openssl_conf = openssl_def/" > openssl.cnf
+cat >> openssl.cnf <<EOF
+
 [openssl_def]
 engines = engine_section
 
@@ -37,10 +46,13 @@ gost = gost_section
 
 [gost_section]
 engine_id = gost
-dynamic_path = $(openssl version -e | cut -d '"' -f 2)/gost.so
-default_algorithms = ALL" >> openssl.cnf
+dynamic_path = ${ENGINE_DIR}/gost.so
+default_algorithms = ALL
+EOF
 
-mv openssl.cnf $(openssl version -d | cut -d '"' -f 2)/openssl.cnf
+sudo mv openssl.cnf "$OPENSSL_CNF"
 
 cd ../../..
 rm -rf tmp
+
+echo "GOST engine installed."

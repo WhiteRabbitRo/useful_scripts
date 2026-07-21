@@ -47,15 +47,27 @@ activate_display() {
     fi
 }
 
+# Function to detect latest NVIDIA driver branch
+detect_driver_branch() {
+    local branch
+    branch=$(apt-cache search nvidia-driver 2>/dev/null | grep -oP 'nvidia-driver-\K[0-9]+' | sort -n | tail -1)
+    if [[ -z "$branch" ]]; then
+        branch=535
+    fi
+    echo "$branch"
+}
+
 # Function to check and fix potential NVIDIA driver issues
 fix_nvidia_issues() {
     echo "Checking NVIDIA drivers..."
     NVIDIA_STATUS=$(nvidia-smi 2>&1)
 
     if [[ "$NVIDIA_STATUS" == *"command not found"* ]]; then
-        echo "NVIDIA driver is not installed. Installing the latest driver..."
+        echo "NVIDIA driver is not installed. Installing detected driver branch..."
+        DRIVER_BRANCH="$(detect_driver_branch)"
+        echo "Using NVIDIA driver branch: $DRIVER_BRANCH"
         sudo apt update
-        sudo apt install -y nvidia-driver-560  # Replace 560 with your desired version
+        sudo apt install -y "nvidia-driver-${DRIVER_BRANCH}"
     elif [[ "$NVIDIA_STATUS" == *"No devices were found"* ]]; then
         echo "No NVIDIA GPU detected. This might not be an NVIDIA issue."
     else
