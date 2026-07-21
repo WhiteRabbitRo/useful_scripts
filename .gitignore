@@ -1,2 +1,6 @@
-.github
-.vscode
+__pycache__/
+*.pyc
+.analyzer_cache.json
+Debug/
+cert/
+tmp/

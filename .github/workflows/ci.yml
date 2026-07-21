@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'cursor/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck
+        run: |
+          find . -type f \( -name '*.sh' -o ! -name '*.*' \) \
+            ! -path './.git/*' \
+            -exec grep -l '^#!.*bash' {} \; \
+            | xargs -r shellcheck -e SC2024,SC2034,SC2086,SC2155,SC2181
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r static_analysis/requirements.txt
+
+      - name: Compile Python modules
+        run: python -m compileall static_analysis/sa
+
+      - name: Run static analysis help
+        run: python static_analysis/static_analysis.py --help
+
+      - name: Run unit tests
+        run: python -m unittest discover -s static_analysis/tests -v
