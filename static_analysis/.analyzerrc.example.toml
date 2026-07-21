@@ -1,0 +1,15 @@
+# Пример конфигурации для static_analysis.py
+# Скопируйте в корень анализируемого проекта как .analyzerrc
+
+includes = ["include"]
+defines = ["DEBUG=1"]
+source_dirs = ["src"]
+exclude_globs = ["*/tests/*"]
+outdir = "Debug"
+formats = ["console", "json"]
+fail_on_severity = "error"
+fail_on_count = 0
+enable_secret_scan = true
+enable_clang_format = false
+use_cache = true
+jobs = 0
